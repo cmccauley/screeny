@@ -11,21 +11,25 @@
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
-#include <Wire.h>
-#include <LiquidCrystal.h>
+// #include <Wire.h>
+// #include <LiquidCrystal.h>
 
-#define   RS   9
-#define   ENABLE  7
+// #define   RS     5 // GPIO5 D1
+// #define   ENABLE 4 // GPIO4 D2
+// #define   DATA1  14 // GPIO14 D5
+// #define   DATA2  12 // GPIO12 D6
+// #define   DATA3  13 // GPIO13 D7
+// #define   DATA4  15 // GPIO15 D8
 
-LiquidCrystal lcd(RS, ENABLE, 1, 2, 3, 4);
+//LiquidCrystal lcd(RS, ENABLE, DATA1, DATA2, DATA3, DATA4);
 
 
 AsyncWebServer server(80);
 
-void writeToLcd(String message);
+//void writeToLcd(String message);
 
-const char* ssid = "";
-const char* password = "";
+const char* ssid = "Shopify";
+const char* password = "tophat made from dollar bills";
 
 const char* PARAM_MESSAGE = "message";
 
@@ -47,15 +51,17 @@ void setup() {
     Serial.println(WiFi.localIP());
 
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+        Serial.print("request yolo swag");
         request->send(200, "text/plain", "Hello, world");
     });
 
     // Send a GET request to <IP>/get?message=<message>
     server.on("/get", HTTP_GET, [] (AsyncWebServerRequest *request) {
+                Serial.print("request yolo swag getttt");
+
         String message;
         if (request->hasParam(PARAM_MESSAGE)) {
             message = request->getParam(PARAM_MESSAGE)->value();
-            writeToLcd(message);
         } else {
             message = "No message sent";
         }
@@ -64,10 +70,11 @@ void setup() {
 
     // Send a POST request to <IP>/post with a form field message set to <message>
     server.on("/post", HTTP_POST, [](AsyncWebServerRequest *request){
+                Serial.print("request yolo postttt");
+
         String message;
         if (request->hasParam(PARAM_MESSAGE, true)) {
             message = request->getParam(PARAM_MESSAGE, true)->value();
-
         } else {
             message = "No message sent";
         }
@@ -75,21 +82,26 @@ void setup() {
     });
 
     server.onNotFound(notFound);
+            Serial.print("begin yo");
 
     server.begin();
+        Serial.print("begin end");
 
-    lcd.begin(16,2);               // initialize the lcd 
+    //lcd.begin(16,2);               // initialize the lcd 
+    
 
 }
 
-void writeToLcd(String message) {
-    lcd.home ();                   // go home
-    lcd.print("Hello, CHEMEX");  
-    lcd.setCursor ( 0, 1 );        // go to the next line
-    lcd.print (message);  
-}
+// void writeToLcd(String message) {
+//     lcd.home ();                   // go home
+//     lcd.print("Hello, CHEMEX");  
+//     lcd.setCursor ( 0, 1 );        // go to the next line
+//     lcd.print (message);  
+//     delay(1000);
+// }
 
 void loop() {
+  //writeToLcd("yo");
   // put your main code here, to run repeatedly:
 
 }
