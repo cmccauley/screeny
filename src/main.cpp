@@ -7,9 +7,9 @@
 
 
 #include <Arduino.h>
+#include <ESP8266HTTPClient.h>
 #include <ESP8266WiFi.h>
 #include <ArduinoJson.h>
-#include <ESP8266HTTPClient.h>
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
@@ -31,11 +31,11 @@ struct LCDData {
     String line2 = "Great software";
 };
 
+
 LCDData data;
-HTTPClient http;
+HTTPClient http_client;
 LiquidCrystal lcd(RS, ENABLE, DATA1, DATA2, DATA3, DATA4);
 AsyncWebServer server(80);
-StaticJsonDocument<200> jsonResponse;
 
 void writeToLcd(LCDData data);
 void updatesCupLeft(LCDData data, int quantity);
@@ -149,12 +149,16 @@ void release(LCDData data){
     data.cups_left++;
 }
 
-void syncCupsWithSlack(LCDData data, StaticJsonDocument<200> jsonResponse) {
-  http.begin(QUANTITY_ENDPOINT);
-  int httpCode = http.GET();
+void syncCupsWithSlack(LCDData data) {
+  http_client.begin(QUANTITY_ENDPOINT);
+  int httpCode = http_client.GET();
+  Serial.println(httpCode);
+
+  StaticJsonDocument<200> jsonResponse;
 
   if (httpCode > 0) {
-    deserializeJson(jsonResponse, http.getString());
+    Serial.println(http_client.getString());
+    deserializeJson(jsonResponse, http_client.getString());
     int quantity = jsonResponse["quantity"];
     Serial.println(quantity);
     updatesCupLeft(data, quantity);
@@ -162,7 +166,7 @@ void syncCupsWithSlack(LCDData data, StaticJsonDocument<200> jsonResponse) {
     writeToLcd(data);
   }
 
-  http.end();
+  http_client.end();
 }
 
 void updatesCupLeft(LCDData data, int cup_lefts) {
@@ -170,6 +174,6 @@ void updatesCupLeft(LCDData data, int cup_lefts) {
 }
 
 void loop() {
-  syncCupsWithSlack(data, jsonResponse);
+  syncCupsWithSlack(data);
   delay(2000);
 }
