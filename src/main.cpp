@@ -8,6 +8,8 @@
 
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
+#include <ArduinoJson.h>
+#include <ESP8266HTTPClient.h>
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
@@ -21,6 +23,8 @@
 #define   DATA3  13 // GPIO13 D7
 #define   DATA4  15 // GPIO15 D8
 
+#define QUANTITY_ENDPOINT "https://chemecois-bot.herokuapp.com/quantity"
+
 struct LCDData {
     int cups_left = 4;
     String line1 = "Starting";
@@ -28,12 +32,14 @@ struct LCDData {
 };
 
 LCDData data;
-
+HTTPClient http;
 LiquidCrystal lcd(RS, ENABLE, DATA1, DATA2, DATA3, DATA4);
-
-
 AsyncWebServer server(80);
+StaticJsonDocument<200> jsonResponse;
 
+void writeToLcd(LCDData data);
+void updatesCupLeft(LCDData data, int quantity);
+void syncCupsWithSlack(LCDData data);
 void writeToLcd(LCDData data);
 void take();
 void release();
@@ -42,8 +48,6 @@ const char* ssid = "Shopify";
 const char* password = "tophat made from dollar bills";
 
 const char* PARAM_MESSAGE = "message";
-
-
 
 void notFound(AsyncWebServerRequest *request) {
     request->send(404, "text/plain", "Not found");
@@ -87,12 +91,12 @@ void setup() {
         if (request->hasParam("line1")) {
             message = request->getParam("line1")->value();
             data.line1 = message;
-        } 
+        }
 
         if (request->hasParam("line2")) {
             message = request->getParam("line2")->value();
             data.line2 = message;
-        } 
+        }
 
         writeToLcd(data);
 
@@ -105,7 +109,7 @@ void setup() {
             message = request->getParam("challenge", true)->value();
             data.line2 = message;
             writeToLcd(data);
-        } 
+        }
         Serial.println("Received a post! with message" + message);
         request->send(200, "text/plain", message);
     });
@@ -125,16 +129,16 @@ void setup() {
 
     server.begin();
 
-    lcd.begin(16,2);               // initialize the lcd 
+    lcd.begin(16, 2);               // initialize the lcd
     writeToLcd(data);
 }
 
 void writeToLcd(LCDData data) {
     lcd.clear();
     lcd.home ();                   // go home
-    lcd.print(data.line1);  
-    lcd.setCursor ( 0, 1 );        // go to the next line
-    lcd.print (data.line2);  
+    lcd.print(data.line1);
+    lcd.setCursor (0, 1);        // go to the next line
+    lcd.print (data.line2);
 }
 
 void take(LCDData data){
@@ -145,8 +149,27 @@ void release(LCDData data){
     data.cups_left++;
 }
 
-void loop() {
-  //writeToLcd("yo");
-  // put your main code here, to run repeatedly:
+void syncCupsWithSlack(LCDData data, StaticJsonDocument<200> jsonResponse) {
+  http.begin(QUANTITY_ENDPOINT);
+  int httpCode = http.GET();
 
+  if (httpCode > 0) {
+    deserializeJson(jsonResponse, http.getString());
+    int quantity = jsonResponse["quantity"];
+    Serial.println(quantity);
+    updatesCupLeft(data, quantity);
+    data.line2 = "Cups left: " + data.cups_left;
+    writeToLcd(data);
+  }
+
+  http.end();
+}
+
+void updatesCupLeft(LCDData data, int cup_lefts) {
+  data.cups_left = cup_lefts;
+}
+
+void loop() {
+  syncCupsWithSlack(data, jsonResponse);
+  delay(2000);
 }
