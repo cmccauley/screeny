@@ -5,7 +5,6 @@
 //  * handle missing pages / 404s
 // gateway 10.11.128.1
 
-
 #include <Arduino.h>
 #include <ESP8266HTTPClient.h>
 #include <ESP8266WiFi.h>
@@ -23,10 +22,12 @@
 #define   DATA3  13 // GPIO13 D7
 #define   DATA4  15 // GPIO15 D8
 
-#define QUANTITY_ENDPOINT "https://chemecois-bot.herokuapp.com/quantity"
+#define QUANTITY_ENDPOINT "http://chemecois-bot.herokuapp.com/quantity"
+
+using namespace std;
 
 struct LCDData {
-    int cups_left = 4;
+    int cups_left = 0;
     String line1 = "Starting";
     String line2 = "Great software";
 };
@@ -157,12 +158,12 @@ void syncCupsWithSlack(LCDData data) {
   StaticJsonDocument<200> jsonResponse;
 
   if (httpCode > 0) {
-    Serial.println(http_client.getString());
     deserializeJson(jsonResponse, http_client.getString());
+    String quantity_string = jsonResponse["quantity"];
     int quantity = jsonResponse["quantity"];
     Serial.println(quantity);
     updatesCupLeft(data, quantity);
-    data.line2 = "Cups left: " + data.cups_left;
+    data.line1 = "Cups left: " + quantity_string;
     writeToLcd(data);
   }
 
