@@ -28,8 +28,8 @@ using namespace std;
 
 struct LCDData {
     int cups_left = 0;
-    String line1 = "Starting";
-    String line2 = "Great software";
+    String line1 = "CHEMECOIS";
+    String line2 = "Starting...";
 };
 
 
@@ -55,15 +55,19 @@ void notFound(AsyncWebServerRequest *request) {
 }
 
 void setup() {
-
     Serial.begin(115200);
+
+    lcd.begin(16, 2);               // initialize the lcd
+
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
     if (WiFi.waitForConnectResult() != WL_CONNECTED) {
         Serial.printf("WiFi Failed!\n");
+        data.line2 = "WiFi exploded";
+        writeToLcd(data);
         return;
     }
-
+    writeToLcd(data);
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
 
@@ -129,9 +133,6 @@ void setup() {
     server.onNotFound(notFound);
 
     server.begin();
-
-    lcd.begin(16, 2);               // initialize the lcd
-    writeToLcd(data);
 }
 
 void writeToLcd(LCDData data) {
@@ -163,7 +164,21 @@ void syncCupsWithSlack(LCDData data) {
     int quantity = jsonResponse["quantity"];
     Serial.println(quantity);
     updatesCupLeft(data, quantity);
-    data.line1 = "Cups left: " + quantity_string;
+    String message = "Error";
+    if (quantity == 0)
+    {
+       message = "No cups left :(";
+    }
+    else if (quantity == 1)
+    {
+        message = quantity_string+ " cup left!";
+    }
+    else
+    {
+        message = quantity_string + " cups left!";
+    }
+
+    data.line2 = message;
     writeToLcd(data);
   }
 
